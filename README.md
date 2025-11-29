@@ -79,6 +79,53 @@ The `--models-dir X:\StabilityMatrix\Models` argument is optional. By default, m
 | `--vae-dir` | Specifies the VAE directory (overrides `--models-dir` if set). |
 | `--lora-dir` | Specifies the LoRA output directory (overrides `--models-dir` if set). |
 
+## CLI (headless) training
+Run TrainTrain trainers without launching Gradio. Presets live in `cli/configs/*.json` and can be overridden from the command line.
+
+1. **Set up once**
+   ```bash
+   python cli/train_cli.py setup
+   ```
+
+2. **ADDifT (single pair)**
+   ```bash
+   python cli/train_cli.py addift \
+     --model /models/sdxl/sd_xl_base_1.0.safetensors \
+     --orig-image /data/sample/orig.png \
+     --targ-image /data/sample/targ.png \
+     --output-name sample_addift \
+     --orig-prompt "source look" \
+     --targ-prompt "target look"
+   ```
+
+3. **Multi-ADDifT (directory pairs)**
+   ```bash
+   python cli/train_cli.py multi-addift \
+     --model /models/sdxl/sd_xl_base_1.0.safetensors \
+     --data-dir /data/pairs \
+     --diff-target-suffix _target \
+     --output-name sample_multi
+   ```
+
+4. **Difference / Copy-machine LoRA**
+   ```bash
+   python cli/train_cli.py difference \
+     --model /models/sdxl/sd_xl_base_1.0.safetensors \
+     --orig-image /data/sample/orig.png \
+     --targ-image /data/sample/targ.png \
+     --output-name sample_diff
+   ```
+
+5. **Standard LoRA (dataset)**
+   ```bash
+   python cli/train_cli.py lora \
+     --model /models/sdxl/sd_xl_base_1.0.safetensors \
+     --data-dir /data/lora_dataset \
+     --output-name sample_lora
+   ```
+
+Tips: `--set key=value` overrides any preset field (dotted keys allowed), `--dry-run` prints the merged JSON, and `--traintrain-path` lets you reuse an existing `traintrain` clone (e.g., `~/sd-webui-traintrain`).
+
 ## Acknowledgments
 This repository references code from [Stable Diffusion WebUI Forge](https://github.com/lllyasviel/stable-diffusion-webui-forge).
 
