@@ -158,11 +158,22 @@ def run_git(dir, name, command, desc=None, errdesc=None, custom_env=None, live=T
     return run(f'"{git}" -C "{dir}" {command}', desc=desc, errdesc=errdesc, custom_env=custom_env, live=live)
 
 
-def git_clone(url, dir, name, commithash=None):
+def git_clone(url, dir, name, commithash=None, pull=False):
     # TODO clone into temporary dir and move if successful
 
     if os.path.exists(dir):
         if commithash is None:
+            if pull:
+                try:
+                    result = subprocess.run(
+                        [git, '-C', dir, 'pull'],
+                        check=True,
+                        capture_output=True,
+                        text=True
+                    )
+                    print(f"Pull successful in {dir}:\n{result.stdout}")
+                except subprocess.CalledProcessError as e:
+                    print(f"Error pulling in {dir}:\n{e.stderr}")
             return
 
         current_hash = run_git(dir, name, 'rev-parse HEAD', None, f"Couldn't determine {name}'s hash: {commithash}", live=False).strip()
