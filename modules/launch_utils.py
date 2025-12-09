@@ -259,7 +259,7 @@ def prepare_environment():
     if not is_installed("ngrok") and args.ngrok:
         run_pip("install ngrok", "ngrok")
         
-    git_clone(tt_repo, os.path.join(script_path, "traintrain"), "traintrain", tt_branch, pull=True)
+    git_clone(tt_repo, os.path.join(script_path, "traintrain"), "traintrain", tt_branch)
     if not args.disable_update:
         git_pull("traintrain")
 
