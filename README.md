@@ -32,7 +32,14 @@ set COMMANDLINE_ARGS=--models-dir X:\StabilityMatrix\Models --branch dev
 | `--models-dir` | Specifies the root directory for models, LoRA, and VAE. |
 | `--ckpt-dir` | Specifies the model directory (overrides `--models-dir` if set). |
 | `--vae-dir` | Specifies the VAE directory (overrides `--models-dir` if set). |
+| `--te-dir` | Specifies the TextEncoder directory (overrides `--models-dir` if set). |
 | `--lora-dir` | Specifies the output directory for LoRA (overrides `--models-dir` if set). |
+| `--listen` | Answers on 0.0.0.0, so the UI can be reached from another machine. |
+| `--server-name` | Sets the hostname to bind to. |
+| `--port` | Sets the port, 7860 by default. |
+| `--share` | Publishes the UI through gradio's own tunnel. |
+| `--gradio-auth` | Requires a login, as `username:password`, comma separated for several. |
+| `--inbrowser` | Opens the UI in the system browser on startup. |
 | `--branch` | Specifies the TrainTrain branch to use. |
 | `--xformers` | Enables Xformers. |
 | `--reinstall-xformers` | Reinstalls Xformers. |
@@ -77,7 +84,15 @@ The `--models-dir X:\StabilityMatrix\Models` argument is optional. By default, m
 | `--models-dir` | Specifies the root directory for models, LoRA, and VAE. |
 | `--ckpt-dir` | Specifies the model directory (overrides `--models-dir` if set). |
 | `--vae-dir` | Specifies the VAE directory (overrides `--models-dir` if set). |
+| `--te-dir` | Specifies the TextEncoder directory (overrides `--models-dir` if set). |
 | `--lora-dir` | Specifies the LoRA output directory (overrides `--models-dir` if set). |
+| `--override` | Overwrites values from the json, so one file can drive a series of runs. |
+
+`--override` takes `key:value` pairs, using the keys the json itself uses:
+
+```
+python train_j.py test.json --override "save_lora_name:ADDifT_Style_SDXL_01" "original image:G:\dataset\01.png" "target image:G:\dataset\02.png"
+```
 
 ## CLI (headless) training
 Run TrainTrain trainers without launching Gradio. Presets live in `cli/configs/*.json` and can be overridden from the command line.
@@ -156,7 +171,14 @@ set COMMANDLINE_ARGS=--models-dir X:\StabilityMatrix\Models --branch dev
 | `--models-dir`                     | モデルなどのルートディレクトリを指定します。Model, LoRA, VAEディレクトリも設定されます。 |
 | `--ckpt-dir`                   | モデルのディレクトリを指定します。`--models-dir`が指定されている場合でも優先されます。 |
 | `--vae-dir`                      | VAEのディレクトリを指定します。`--models-dir`が指定されている場合でも優先されます。 |
+| `--te-dir`                       | TextEncoderのディレクトリを指定します。`--models-dir`が指定されている場合でも優先されます。 |
 | `--lora-dir`                     | LoRA出力先ディレクトリを指定します。`--models-dir`が指定されている場合でも優先されます。 |
+| `--listen`                       | 0.0.0.0で待ち受けます。他のマシンからUIにアクセスできるようになります。 |
+| `--server-name`                  | 待ち受けるホスト名を指定します。 |
+| `--port`                         | ポートを指定します。デフォルトは7860です。 |
+| `--share`                        | gradioのトンネル経由でUIを公開します。 |
+| `--gradio-auth`                  | ログインを要求します。`ユーザー名:パスワード`形式で、複数の場合はカンマ区切りです。 |
+| `--inbrowser`                    | 起動時にブラウザでUIを開きます。 |
 | `--branch`                       | TrainTrainのブランチを指定します。 |
 | `--xformers`                     | Xformersを有効化します。 |
 | `--reinstall-xformers`           | Xformersを再インストールします。 |
@@ -202,7 +224,15 @@ python train_j.py test.json --models-dir X:\StabilityMatrix\Models
 | `--models-dir`                     | モデルなどのルートディレクトリを指定します。Model, LoRA, VAEディレクトリも設定されます。 |
 | `--ckpt-dir`                   | モデルのディレクトリを指定します。`--models-dir`が指定されている場合でも優先されます。 |
 | `--vae-dir`                      | VAEのディレクトリを指定します。`--models-dir`が指定されている場合でも優先されます。 |
+| `--te-dir`                       | TextEncoderのディレクトリを指定します。`--models-dir`が指定されている場合でも優先されます。 |
 | `--lora-dir`                     | LoRAのディレクトリを指定します。`--models-dir`が指定されている場合でも優先されます。 |
+| `--override`                     | jsonの値を上書きします。ひとつのjsonから設定を変えながら連続で学習できます。 |
+
+　`--override`はjsonで使われているキーをそのまま使い、`キー:値`の形式で指定します。
+
+```
+python train_j.py test.json --override "save_lora_name:ADDifT_Style_SDXL_01" "original image:G:\dataset\01.png" "target image:G:\dataset\02.png"
+```
 
 ## 謝辞
 　本レポジトリは[Stable Diffusion WebUI Forge](https://github.com/lllyasviel/stable-diffusion-webui-forge)のコードを参考にしています。

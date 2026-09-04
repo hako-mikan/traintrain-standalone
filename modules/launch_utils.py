@@ -19,6 +19,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--models-dir", type=str, default=None, help="base path where models are stored", )
 parser.add_argument("--ckpt-dir", type=normalized_filepath, default=None, help="Path to directory with stable diffusion checkpoints")
 parser.add_argument("--vae-dir", type=normalized_filepath, default=None, help="Path to directory with VAE files")
+parser.add_argument("--te-dir", type=normalized_filepath, default=None, help="Path to directory with TextEncoder files")
 parser.add_argument("--lora-dir", type=normalized_filepath, default=None, help="Path to directory with LoRA files")
 parser.add_argument("--branch", type=str, default="main", help="Branch name for TrainTrain")
 parser.add_argument("--skip-python-version-check", action='store_true', help="launch.py argument: do not check python version")
@@ -34,6 +35,12 @@ parser.add_argument("--xformers", action='store_true', help="enable xformers for
 parser.add_argument("--use-cpu", nargs='+', help="use CPU as torch device for specified modules", default=[], type=str.lower)
 parser.add_argument("--use-ipex", action="store_true", help="use Intel XPU as torch device")
 parser.add_argument("--thema", type=str, default="origin", help='change gradio thema, "base","default","origin","citrus","monochrome","soft","glass","ocean"')
+parser.add_argument("--listen", action='store_true', help="launch gradio with 0.0.0.0 as server name, allowing to respond to network requests")
+parser.add_argument("--server-name", type=str, default=None, help="sets hostname of server")
+parser.add_argument("--port", type=int, default=None, help="launch gradio with given server port, defaults to 7860 and counts up if it is taken")
+parser.add_argument("--share", action='store_true', help="use share=True for gradio and make the UI accessible through their site")
+parser.add_argument("--gradio-auth", type=str, default=None, help='set gradio authentication like "username:password", or comma delimited for several pairs')
+parser.add_argument("--inbrowser", action='store_true', help="open the web UI in the system browser on startup")
 
 args, _ = parser.parse_known_args()
 
@@ -205,8 +212,16 @@ re_requirement = re.compile(r"\s*([-_a-zA-Z0-9]+)\s*(?:==\s*([-+_.a-zA-Z0-9]+))?
 def prepare_environment():
     tt_repo = "https://github.com/hako-mikan/sd-webui-traintrain.git"
     tt_branch = args.branch
-    torch_index_url = os.environ.get('TORCH_INDEX_URL', "https://download.pytorch.org/whl/cu121")
-    torch_command = os.environ.get('TORCH_COMMAND', f"pip install torch==2.3.1 torchvision==0.18.1 --extra-index-url {torch_index_url}")
+    
+    # cu128 and torch 2.9 are what a Blackwell card needs, and they are recent
+    # enough for the diffusers that Z-Image wants
+    target_torch_ver = "2.9.1"
+    target_torchvision_ver = "0.24.1"
+    target_xformers_ver = "0.0.33"
+
+    torch_index_url = os.environ.get('TORCH_INDEX_URL', "https://download.pytorch.org/whl/cu128")
+    torch_command = os.environ.get('TORCH_COMMAND', f"pip install torch=={target_torch_ver} torchvision=={target_torchvision_ver} --extra-index-url {torch_index_url}")
+
     if args.use_ipex:
         if platform.system() == "Windows":
             # The "Nuullll/intel-extension-for-pytorch" wheels were built from IPEX source for Intel Arc GPU: https://github.com/intel/intel-extension-for-pytorch/tree/xpu-main
@@ -227,9 +242,12 @@ def prepare_environment():
             # See https://intel.github.io/intel-extension-for-pytorch/index.html#installation for details.
             torch_index_url = os.environ.get('TORCH_INDEX_URL', "https://pytorch-extension.intel.com/release-whl/stable/xpu/us/")
             torch_command = os.environ.get('TORCH_COMMAND', f"pip install torch==2.0.0a0 intel-extension-for-pytorch==2.0.110+gitba7f6c1 --extra-index-url {torch_index_url}")
+        # the version check further down only knows about the CUDA wheels
+        target_torch_ver = target_torchvision_ver = None
+        
     requirements_file = os.environ.get('REQS_FILE', "requirements_versions.txt")
 
-    xformers_package = os.environ.get('XFORMERS_PACKAGE', 'xformers==0.0.27')
+    xformers_package = os.environ.get('XFORMERS_PACKAGE', f'xformers=={target_xformers_ver}')
     clip_package = os.environ.get('CLIP_PACKAGE', "https://github.com/openai/CLIP/archive/d50d76daa670286dd6cacf3bcd80b5e4823fc8e1.zip")
     openclip_package = os.environ.get('OPENCLIP_PACKAGE', "https://github.com/mlfoundations/open_clip/archive/bb6e834e9c70d9c27d0dc3ecedeebeaeb1ffad6b.zip")
 
@@ -244,7 +262,26 @@ def prepare_environment():
         check_python_version()
 
     print(f"Python {sys.version}")
-    if args.reinstall_torch or not is_installed("torch") or not is_installed("torchvision"):
+
+    # an install of the wrong version is upgraded rather than left alone: the one
+    # that shipped before this knew nothing about Blackwell cards
+    need_install_torch = args.reinstall_torch or not is_installed("torch") or not is_installed("torchvision")
+
+    if not need_install_torch and target_torch_ver is not None:
+        try:
+            import torch
+            import torchvision
+
+            if not torch.__version__.startswith(target_torch_ver):
+                print(f"Torch version mismatch: installed {torch.__version__}, expecting {target_torch_ver}")
+                need_install_torch = True
+            elif not torchvision.__version__.startswith(target_torchvision_ver):
+                print(f"Torchvision version mismatch: installed {torchvision.__version__}, expecting {target_torchvision_ver}")
+                need_install_torch = True
+        except ImportError:
+            need_install_torch = True
+
+    if need_install_torch:
         run(f'"{python}" -m {torch_command}', "Installing torch and torchvision", "Couldn't install torch", live=True)
 
     if args.use_ipex:
